@@ -5,7 +5,7 @@
 # Licensed under the terms of MIT
 
 LOG=/var/log/backup.log
-SSMTP_CONF=/etc/ssmtp/ssmtp.conf
+MUTTRC=/tmp/muttrc
 
 # Bitwarden Email settings - usually provided as environment variables for but may be set below:
 # SMTP_HOST=
@@ -40,14 +40,15 @@ convert_bool() {
 #   * see https://github.com/dani-garcia/vaultwarden/issues/851
 email_init() {
   apk --update --no-cache add mutt
-  if [ ! -f /tmp/muttrc ]; then
-    proto=smtp
-    if [ "$(convert_bool "$SMTP_EXPLICIT_TLS")" == "yes" ]; then
-      proto=smtps
-    fi
-    echo "set smtp_url=\"${proto}://${SMTP_USERNAME}@${SMTP_HOST}:${SMTP_PORT}\"" >/tmp/muttrc
-    echo "set smtp_pass=\"${SMTP_PASSWORD}\"" >>/tmp/muttrc
+  if [ "$(convert_bool "$SMTP_EXPLICIT_TLS")" == "yes" ]; then
+    SMTP_PROTO=smtps
+  else
+    SMTP_PROTO=smtp
   fi
+  cat >"$MUTTRC" <<EOF
+set smtp_url="${SMTP_PROTO}://${SMTP_USERNAME}@${SMTP_HOST}:${SMTP_PORT}"
+set smtp_pass="${SMTP_PASSWORD}"
+EOF
   printf "Finished configuring email.\n" >$LOG
 }
 
@@ -60,8 +61,8 @@ email_send() {
   if [ -n "$3" ]; then
     ATTACHMENT="-a $3 --"
   fi
-  
-  if printf "$2" | EMAIL="$BACKUP_EMAIL_FROM_NAME <$SMTP_FROM>" mutt -F /tmp/muttrc -s "$1" $ATTACHMENT "$BACKUP_EMAIL_TO"; then
+
+  if EMAIL_RESULT=$(printf "$2" | EMAIL="$BACKUP_EMAIL_FROM_NAME <$SMTP_FROM>" mutt -F "$MUTTRC" -s "$1" $ATTACHMENT "$BACKUP_EMAIL_TO" 2>&1); then
     printf "Sent e-mail (%b) to %b\n" "$1" "$BACKUP_EMAIL_TO" > $LOG
   else
     printf "Email error: %b\n" "$EMAIL_RESULT" > $LOG
@@ -149,7 +150,7 @@ make_backup() {
 
   # rm any backups older than 30 days
   find $BACKUP_DIR/* -mtime +$BACKUP_DAYS -exec rm {} \;
-  
+
   printf "$BACKUP_FILE"
 }
 
@@ -159,13 +160,13 @@ make_backup() {
 
 
 # Initialize e-mail if (using e-mail backup OR BACKUP_EMAIL_NOTIFY is set) AND ssmtp has not been configured
-if [ "$1" == "email" -o -n "$BACKUP_EMAIL_NOTIFY" ] && [ ! -f "$SSMTP_CONF" ]; then
+if [ "$1" == "email" -o -n "$BACKUP_EMAIL_NOTIFY" ] && [ ! -f "$MUTTRC" ]; then
   email_init
 fi
 # Initialize rclone if BACKUP=rclone and $(which rclone) is blank
 if [ "$1" == "rclone" -a -z "$(which rclone)" ]; then
   rclone_init
-fi 
+fi
 
 
 # Handle E-mail Backup
@@ -177,12 +178,12 @@ if [ "$1" == "email" ]; then
   FILENAME=$(basename $RESULT)
   BODY=$(email_body $FILENAME)
   email_send "$BACKUP_EMAIL_FROM_NAME - $FILENAME" "$BODY" $RESULT
-  
+
 
 # Handle rclone Backup
 elif [ "$1" == "rclone" ]; then
   printf "Running rclone backup\n" > $LOG
-  
+
   # Only run if $BACKUP_RCLONE_CONF has been setup
   if [ -s "$BACKUP_RCLONE_CONF" ]; then
     RESULT=$(make_backup)
@@ -200,7 +201,7 @@ elif [ "$1" == "rclone" ]; then
 
 elif [ "$1" == "local" ]; then
   printf "Running local backup\n" > $LOG
-  
+
   RESULT=$(make_backup)
 
   if [ -n "$BACKUP_EMAIL_NOTIFY" ]; then

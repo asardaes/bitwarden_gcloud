@@ -39,22 +39,16 @@ convert_bool() {
 # * UseSTARTTLS - Bitwarden's SMTP_EXPLICIT_TLS is backwards, so flip from true/false to no/yes
 #   * see https://github.com/dani-garcia/vaultwarden/issues/851
 email_init() {
-  # Install ssmtp
-  apk --update --no-cache add ssmtp mutt
-
-  # Copy configuration to ssmtp.conf
-  cat > $SSMTP_CONF << EOF
-root=$SMTP_FROM
-mailhub=$SMTP_HOST:$SMTP_PORT
-UseTLS=$(convert_bool $SMTP_SSL)
-UseSTARTTLS=$([ $(convert_bool $SMTP_EXPLICIT_TLS) == "yes" ] && echo no || echo yes)
-AuthUser=$SMTP_USERNAME
-AuthPass=$SMTP_PASSWORD
-AuthMethod=$AUTH_METHOD
-FromLineOverride=yes
-EOF
-
-  printf "Finished configuring email (%b)\n" "$SSMTP_CONF" > $LOG
+  apk --update --no-cache add mutt
+  if [ ! -f /tmp/muttrc ]; then
+    proto=smtp
+    if [ "$(convert_bool "$SMTP_EXPLICIT_TLS")" == "yes" ]; then
+      proto=smtps
+    fi
+    echo "set smtp_url=\"${proto}://${SMTP_USERNAME}@${SMTP_HOST}:${SMTP_PORT}\"" >/tmp/muttrc
+    echo "set smtp_pass=\"${SMTP_PASSWORD}\"" >>/tmp/muttrc
+  fi
+  printf "Finished configuring email.\n" >$LOG
 }
 
 
@@ -66,12 +60,11 @@ email_send() {
   if [ -n "$3" ]; then
     ATTACHMENT="-a $3 --"
   fi
-  EMAIL_RESULT=$(printf "$2" | EMAIL="$BACKUP_EMAIL_FROM_NAME <$SMTP_FROM>" mutt -s "$1" $ATTACHMENT "$BACKUP_EMAIL_TO" 2>&1)
   
-  if [ -n "$EMAIL_RESULT" ]; then
-    printf "Email error: %b\n" "$EMAIL_RESULT" > $LOG
+  if printf "$2" | EMAIL="$BACKUP_EMAIL_FROM_NAME <$SMTP_FROM>" mutt -F /tmp/muttrc -s "$1" $ATTACHMENT "$BACKUP_EMAIL_TO"; then
+    printf "Sent e-mail (%b) to %b\n" "$1" "$BACKUP_EMAIL_TO" > $LOG
   else
-    printf "Sent e-mail (%b) to %b\n" "$1" "$BACKUP_EMAIL_TO" > $LOG  
+    printf "Email error: %b\n" "$EMAIL_RESULT" > $LOG
   fi
 }
 
@@ -87,10 +80,10 @@ email_body() {
   EMAIL_BODY_TAR="Email backup successful.
 
 To restore, untar in the Bitwarden data directory:
-    tar -zxf $FILE.tar.gz"
+    tar -zxf $FILE"
 
   EMAIL_BODY_AES="To decrypt an encrypted backup (.aes256), first decrypt using openssl:
-    openssl enc -d -aes256 -salt -pbkdf2 -pass pass:<password> -in $FILE.tar.gz.aes256 -out $FILE.tar.gz"
+    openssl enc -d -aes256 -salt -pbkdf2 -pass pass:<password> -in $FILE.aes256 -out $FILE"
 
 
   BODY=$EMAIL_BODY_TAR

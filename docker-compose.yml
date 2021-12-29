@@ -1,6 +1,5 @@
 version: '3'
 
-
 services:
   bitwarden:
     # Standard Bitwarden is very resource-heavy and cannot run on micro cloud instances
@@ -25,6 +24,7 @@ services:
     - SIGNUPS_ALLOWED
     - SMTP_HOST
     - SMTP_FROM
+    - SMTP_FROM_NAME
     - SMTP_PORT
     - SMTP_SSL
     - SMTP_EXPLICIT_TLS
@@ -33,7 +33,7 @@ services:
     - YUBICO_CLIENT_ID
     - YUBICO_SECRET_KEY
     - YUBICO_SERVER
-    - ORG_CREATE_USER
+    - ORG_CREATION_USERS
     - BACKUP
     - BACKUP_DAYS
     - BACKUP_DIR
@@ -54,6 +54,23 @@ services:
              fi &&
              exec /start.sh'
 
+  ddns:
+    # This provides a ddclient dynamic dns updating cron which is as simple as running it
+    # and editing the ddns/config/ddclient.conf file
+    # https://github.com/linuxserver/docker-ddclient
+    image: local/ddclient:snapshot
+    restart: always
+    container_name: ddns
+    depends_on:
+    - bitwarden
+    volumes:
+    - ${PWD}/ddns:/config
+    - ${PWD}/ddns/cache:/usr/local/var/cache
+    environment:
+    - PUID
+    - PGID
+    - TZ
+
   proxy:
     # Caddy provides an automatic HTTPS reverse proxy with Let's Encrypt cert provisioning
     # https://caddyserver.com/
@@ -72,24 +89,6 @@ services:
     - ACME_AGREE=true                   # agree to ACME for auto HTTPS
     - DOMAIN                            # Value-less variables are set in .env
     - EMAIL
-
-
-  ddns:
-    # This provides a ddclient dynamic dns updating cron which is as simple as running it
-    # and editing the ddns/config/ddclient.conf file
-    # https://github.com/linuxserver/docker-ddclient
-    image: linuxserver/ddclient
-    restart: always
-    container_name: ddns
-    depends_on: 
-    - bitwarden
-    volumes:
-    - ${PWD}/ddns:/config
-    environment:
-    - PUID
-    - PGID
-    - TZ
-
 
   fail2ban:
     # Implements fail2ban functionality, banning ips that 
@@ -123,7 +122,6 @@ services:
     - SSMTP_STARTTLS=YES
     - TZ
 
-
   countryblock:
     # The block script will block any country (defaults to CN and AU)
     # Requires cap_add as listed and privileged because it uses iptables and ipset
@@ -152,7 +150,6 @@ services:
              crond -d 8 &&
              bash /block.sh start'    
 
-
   watchtower:
     # Watchtower will pull down your new image, gracefully shut down your existing container 
     # and restart it with the same options that were used when it was deployed initially
@@ -168,7 +165,6 @@ services:
     - WATCHTOWER_CLEANUP=true
     - WATCHTOWER_SCHEDULE
     - TZ
-
 
 volumes:
   caddycerts:

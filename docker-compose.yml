@@ -26,8 +26,7 @@ services:
     - SMTP_FROM
     - SMTP_FROM_NAME
     - SMTP_PORT
-    - SMTP_SSL
-    - SMTP_EXPLICIT_TLS
+    - SMTP_SECURITY
     - SMTP_USERNAME
     - SMTP_PASSWORD
     - YUBICO_CLIENT_ID
@@ -44,7 +43,7 @@ services:
     - BACKUP_RCLONE_CONF
     - BACKUP_RCLONE_DEST
     command: >
-      sh -c 'if [ -n "$BACKUP" ]; 
+      sh -c 'if [ -n "$BACKUP" ]
              then 
                apk --update --no-cache add sqlite
                ln -sf /proc/1/fd/1 /var/log/backup.log &&

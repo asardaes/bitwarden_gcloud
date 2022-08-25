@@ -40,7 +40,7 @@ convert_bool() {
 #   * see https://github.com/dani-garcia/vaultwarden/issues/851
 email_init() {
   apk --update --no-cache add mutt
-  if [ "$SMTP_SECURITY" == "force" ]; then
+  if [ "$SMTP_SECURITY" == "force_tls" ]; then
     SMTP_PROTO=smtps
   else
     SMTP_PROTO=smtp

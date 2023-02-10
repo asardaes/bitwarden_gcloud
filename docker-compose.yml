@@ -59,7 +59,7 @@ services:
     # This provides a ddclient dynamic dns updating cron which is as simple as running it
     # and editing the ddns/config/ddclient.conf file
     # https://github.com/linuxserver/docker-ddclient
-    image: local/ddclient:snapshot
+    image: linuxserver/ddclient
     restart: always
     container_name: ddns
     depends_on:

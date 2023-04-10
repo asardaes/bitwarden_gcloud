@@ -5,14 +5,14 @@ services:
     # Standard Bitwarden is very resource-heavy and cannot run on micro cloud instances
     # Vaultwarden is a Rust (mostly) feature-complete implementation of Bitwarden
     # https://github.com/dani-garcia/vaultwarden
-    image: vaultwarden/server:alpine
+    #build: ./docker/bitwarden                                  # backup, in case container registry is not responsive
+    image: ghcr.io/dadatuputi/bwgc_vaultwarden:master           # from https://github.com/dadatuputi/bwgc_vaultwarden
     restart: always
     container_name: bitwarden
     depends_on: 
     - proxy
     volumes:
     - ${PWD}/bitwarden:/data
-    - ${PWD}/utilities/backup.sh:/backup.sh:ro
     environment:
     - LOG_FILE=/data/bitwarden.log
     - WEBSOCKET_ENABLED=true            # required for websockets
@@ -35,6 +35,7 @@ services:
     - YUBICO_SERVER
     - ORG_CREATION_USERS
     - BACKUP
+    - BACKUP_SCHEDULE
     - BACKUP_DAYS
     - BACKUP_DIR
     - BACKUP_EMAIL_FROM_NAME
@@ -44,16 +45,6 @@ services:
     - BACKUP_RCLONE_CONF
     - BACKUP_RCLONE_DEST
     - TZ
-    command: >
-      sh -c 'if [ -n "$BACKUP" ]
-             then 
-               apk --update --no-cache add sqlite
-               ln -sf /proc/1/fd/1 /var/log/backup.log &&
-               sed -i "/ash \\/backup\\.sh /d" /etc/crontabs/root &&
-               echo "$BACKUP_SCHEDULE ash /backup.sh $BACKUP" >> /etc/crontabs/root && 
-               crond -d 8; 
-             fi &&
-             exec /start.sh'
 
   ddns:
     # This provides a ddclient dynamic dns updating cron which is as simple as running it
@@ -76,7 +67,8 @@ services:
     # Caddy provides an automatic HTTPS reverse proxy with Let's Encrypt cert provisioning
     # Uses local Dockerfile to include tzdata package
     # https://caddyserver.com/
-    build: ./docker/caddy
+    #build: ./docker/proxy                              # backup, in case container registry is not responsive
+    image: ghcr.io/dadatuputi/bwgc_caddy:master         # from https://github.com/dadatuputi/bwgc_proxy
     restart: always
     container_name: proxy
     volumes:
@@ -92,8 +84,6 @@ services:
     - DOMAIN                            # Value-less variables are set in .env
     - EMAIL
     - TZ
-    labels:
-    - "com.centurylinklabs.watchtower.enable=false"
 
   fail2ban:
     # Implements fail2ban functionality, banning ips that 
@@ -131,13 +121,12 @@ services:
     # The block script will block any country (defaults to CN and AU)
     # Requires cap_add as listed and privileged because it uses iptables and ipset
     # https://hub.docker.com/_/alpine/
-    image: alpine:latest
+    #build: ./docker/countryblock                       # backup, in case container registry is not responsive
+    image: ghcr.io/dadatuputi/bwgc_countryblock:master  # from https://github.com/dadatuputi/bwgc_countryblock
     restart: always
     container_name: countryblock
     depends_on: 
     - bitwarden
-    volumes:
-    - ${PWD}/countryblock/block.sh:/block.sh:ro
     network_mode: "host"
     privileged: true
     cap_add:
@@ -147,13 +136,6 @@ services:
     - COUNTRIES
     - COUNTRYBLOCK_SCHEDULE
     - TZ
-    command: >
-      sh -c 'apk --update --no-cache add ipset iptables ip6tables wget bash tzdata &&
-             ln -sf /proc/1/fd/1 /var/log/block.log &&
-             sed -i "/bash \\/block\\.sh update/d" /etc/crontabs/root &&
-             echo "$COUNTRYBLOCK_SCHEDULE bash /block.sh update" >> /etc/crontabs/root &&
-             crond -d 8 &&
-             bash /block.sh start'    
 
   watchtower:
     # Watchtower will pull down your new image, gracefully shut down your existing container 

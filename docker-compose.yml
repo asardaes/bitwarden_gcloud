@@ -29,7 +29,6 @@ services:
     - SMTP_SECURITY
     - SMTP_USERNAME
     - SMTP_PASSWORD
-    - SMTP_AUTH_MECHANISM
     - YUBICO_CLIENT_ID
     - YUBICO_SECRET_KEY
     - YUBICO_SERVER
@@ -79,7 +78,6 @@ services:
     - bitwarden
     volumes:
     - ${PWD}/ddns:/config
-    - ${PWD}/ddns/cache:/usr/local/var/cache
     environment:
     - PUID
     - PGID

@@ -56,7 +56,7 @@ services:
     - BACKUP_RCLONE_DEST
     - SMTP_HOST
     - SMTP_FROM
-    - SMTP_FROM_NAME=Bitwarden Backup (${DOMAIN})
+    - SMTP_FROM_NAME=Vaultwarden Backup
     - SMTP_PORT
     - SMTP_SECURITY
     - SMTP_USERNAME

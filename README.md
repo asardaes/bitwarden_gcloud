@@ -2,7 +2,7 @@
 
 ---
 
-> __3 April 2023 Alert__: [Recent changes to Vaultwarden](https://github.com/dani-garcia/vaultwarden/commit/ca417d32578c3b6224c5aa8df56eb776712941b7) may cause Vaultwarden to fail to start due to default environmental variables. `.env.default` has been updated in this repo, however, if you are affected, you must also update `.env` and comment out all `YUBICO_*` variables, so that they appear as:
+> __3 April 2023 Alert__: [Recent changes to Vaultwarden](https://github.com/dani-garcia/vaultwarden/commit/ca417d32578c3b6224c5aa8df56eb776712941b7) may cause Vaultwarden to fail to start due to default environmental variables. `.env.template` has been updated in this repo, however, if you are affected, you must also update `.env` and comment out all `YUBICO_*` variables, so that they appear as:
 >
 > ```
 > #YUBICO_CLIENT_ID=
@@ -15,7 +15,7 @@
 
 ## Features
 
-* Bitwarden self-hosted (via Vaultwarden)
+* Bitwarden self-hosted (via Vaultwarden) on Google Cloud 'always free' e2-micro tier 
 * Automatic https certificate management through Caddy 2 proxy
 * Dynamic DNS updates through ddclient
 * Blocking brute-force attempts with fail2ban

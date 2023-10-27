@@ -85,7 +85,7 @@ services:
     # Uses local Dockerfile to include tzdata package
     # https://caddyserver.com/
     #build: ./docker/proxy                              # backup, in case container registry is not responsive
-    image: ghcr.io/dadatuputi/bwgc_caddy:master         # from https://github.com/dadatuputi/bwgc_proxy
+    image: ghcr.io/asardaes/bwgc_caddy:master
     restart: always
     container_name: proxy
     <<: *default-logging
@@ -94,7 +94,6 @@ services:
     - ${PWD}/caddy/data:/data
     - caddycerts:/root/.caddy
     ports:
-    - 80:80                             # Port 80 is necessary for Let's Encrypt ACME
     - 443:443
     environment:
     - ACME_AGREE=true                   # agree to ACME for auto HTTPS

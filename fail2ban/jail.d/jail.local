@@ -5,8 +5,8 @@ maxretry = 5
 # To enable email alerts, uncomment `destemail` and `sender` below,
 # enter your destination and sender emails in the fields,
 # and uncomment the `action_mwl` action in the jails below.
-#destemail = email you want to send to
-#sender = email you want to send from
+destemail = email you want to send to
+sender = email you want to send from
 
 [bitwarden]
 enabled = true

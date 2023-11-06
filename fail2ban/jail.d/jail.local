@@ -14,7 +14,7 @@ port = 80,443,8081
 filter = bitwarden
 logpath = /bitwarden/bitwarden.log
 action = iptables-allports[name=bitwarden, chain=FORWARD]
-#         %(action_mwl)s
+         %(action_mwl)s
 
 [bitwarden-admin]
 enabled = true

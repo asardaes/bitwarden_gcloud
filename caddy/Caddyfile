@@ -4,7 +4,7 @@ https://{$DOMAIN}:443 {
 	# Doc about automatic HTTPS https://caddyserver.com/docs/automatic-https
 
 	log {
-		output stdout
+		output stderr
 		level INFO
 		format filter {
 			wrap console {
